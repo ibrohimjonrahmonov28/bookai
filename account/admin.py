@@ -6,13 +6,32 @@ from account.models import User
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
 
+# class UserModelAdmin(BaseUserAdmin):
+#     list_display = ('id', 'email', 'name', 'is_active', 'is_staff')
+#     list_filter = ('is_staff',)
+#     fieldsets = (
+#         ('User Credentials', {'fields': ('email', 'password')}),
+#         ('Personal info', {'fields': ('name',)}),
+#         ('Permissions', {'fields': ('is_staff', 'is_active')}),
+#     )
+#     add_fieldsets = (
+#         (None, {
+#             'classes': ('wide',),
+#             'fields': ('email', 'name', 'password1', 'password2'),
+#         }),
+#     )
+#     search_fields = ('email',)
+#     ordering = ('email', 'id')
+#     filter_horizontal = ()
+
+# admin.site.register(User, UserModelAdmin)
 class UserModelAdmin(BaseUserAdmin):
-    list_display = ('id', 'email', 'name', 'is_active', 'is_admin')
-    list_filter = ('is_admin',)
+    list_display = ('id', 'email', 'name', 'is_active', 'is_staff')
+    list_filter = ('is_staff',)  # list_filter haqiqatan ham tuple yoki ro'yxat bo'lishi kerak
     fieldsets = (
         ('User Credentials', {'fields': ('email', 'password')}),
         ('Personal info', {'fields': ('name',)}),
-        ('Permissions', {'fields': ('is_admin', 'is_active')}),
+        ('Permissions', {'fields': ('is_staff', 'is_active')}),
     )
     add_fieldsets = (
         (None, {
@@ -25,3 +44,4 @@ class UserModelAdmin(BaseUserAdmin):
     filter_horizontal = ()
 
 admin.site.register(User, UserModelAdmin)
+

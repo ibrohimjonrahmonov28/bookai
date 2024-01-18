@@ -19,9 +19,5 @@ def read_book(book_path):
 
     return text_content
 
-# Example usage:
-book_path = "C:/Users/mrhack1/Desktop/test2.pdf"  # Replace with the actual path to your PDF or DOCX file
-book_text = read_book(book_path)
 
-print(book_text)
 

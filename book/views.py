@@ -1,8 +1,5 @@
 from django.shortcuts import render
-
-# Create your views here.
-from django.shortcuts import render
-from .serializer import CategorySerializer, BookSerializer, BookViewSerializer, FavoriteSerializer
+from .serializers import CategorySerializer, BookSerializer, BookViewSerializer, FavoriteSerializer
 from rest_framework.viewsets import ModelViewSet
 from . models import Category,Book,BookViews,Favorite,Participant,Rating,SlideBar,Comment
 from rest_framework.viewsets import mixins
@@ -15,28 +12,40 @@ from rest_framework.generics import ListCreateAPIView
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework.generics import ListAPIView
 from django.db.models import Count
-from .permission import OnlyMyUser
+# from .permission import OnlyMyUser
 from rest_framework.permissions import IsAuthenticated
 from datetime import timedelta
-from MyUser.models import Users
+from account.models import User
 from django.db.models import F,Q
 from django.db.models import Count
 from django.shortcuts import get_object_or_404
 from rest_framework import generics
 from rest_framework import filters
 from django.core.cache import cache
+from .helper import read_book
 
-# class CategoryView(ListAPIView):
-#     serializer_class=CategorySerializer
-#     queryset=Category.objects.all()
+class CategoryView(ListAPIView):
+    serializer_class=CategorySerializer
+    queryset=Category.objects.all()
 
-def category_list(request): 
-    categories = Category.objects.all() 
-    return render(request, 'index.html', {'categories': categories})
 
-def book_by_category(request, category_id): 
-    books = Book.objects.filter(category_id=category_id) 
-    return render(request, 'book_by_category.html', {'books': books})
+class BooksByCategory(APIView):
+    def get(self, request, category_slug):
+        category = Category.objects.filter(slug=category_slug)
+        if not category:
+            return Response({"detail": "Category not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        books = Book.objects.filter(categories=category)
+        serializer = BookSerializer(books, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+# def category_list(request): 
+#     categories = Category.objects.all() 
+#     return render(request, 'index.html', {'categories': categories})
+
+# def book_by_category(request, category_id): 
+#     books = Book.objects.filter(category_id=category_id) 
+#     return render(request, 'book_by_category.html', {'books': books})
 
 
 class BookView(ModelViewSet):
@@ -52,7 +61,6 @@ class BookView(ModelViewSet):
             for category in categories:
                 book_by_category = list(Book.objects.filter(category_id=category.id).order_by("-id")[:3])
                 result.append(book_by_category)
-
             queryset = list(chain(*result))
         else:
             result = []
@@ -77,6 +85,7 @@ class BookView(ModelViewSet):
         return Response(serializer.data)
 
 
+
 class TopBookView(APIView):
     def get(self, request):
         one_month_ago = timezone.now() - timedelta(days=30)
@@ -86,8 +95,7 @@ class TopBookView(APIView):
         serializer = BookSerializer(queryset, many=True) 
         return Response(serializer.data)
 
-class FavoriteView(APIView):
-    
+class FavoriteView(APIView):    
     def get(self, request):
         cache_key = f"favorite_book_{request.user.id}"
         favorite_books = cache.get(cache_key)
@@ -114,7 +122,7 @@ class FavoriteView(APIView):
             favorite_books.append(favorite)
             cache.set(cache_key, favorite_books)
         else:
-            pass
+            cache.set(cache_key,[favorite])
         serializer = FavoriteSerializer(favorite)
         return Response(serializer.data)
 
@@ -126,11 +134,14 @@ class FavoriteView(APIView):
         if favorite_books is not None:
             favorite_books = [favorite for favorite in favorite_books if favorite.id != pk]
             cache.set(cache_key, favorite_books)
-
+        else:
+            print("Cache is empty. No further actions taken.")
+            cache.set(cache_key,[]
+            )
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 class TopBookView(APIView):
-    # @swagger_auto_schema(request_body=BookSerializer)
+    @swagger_auto_schema(request_body=BookSerializer)
     def post(self, request):
         data=request.data
         start_data=data["start_data"]
@@ -147,3 +158,18 @@ class SearchView(generics.ListAPIView):
     filter_backends = [filters.SearchFilter]
     search_fields = ['$name']
     
+class UploadBookView(APIView):
+    def post(self, request, *args, **kwargs):
+        book_serializer = BookSerializer(data=request.data)
+        if book_serializer.is_valid():
+            # Faylning manzili
+            book_path = book_serializer.validated_data['file'].path
+            
+            # Faylni o'qish va uni matnga aylantirish
+            text_content = read_book(book_path)
+
+            # Boshqa logika (masalan, ma'lumotlarni saqlash, kitob obyektini yaratish)...
+            
+            return Response({'text_content': text_content}, status=status.HTTP_201_CREATED)
+        else:
+            return Response(book_serializer.errors, status=status.HTTP_400_BAD_REQUEST)

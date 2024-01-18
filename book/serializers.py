@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from MyUser.models import Users
+from account.models import User
 from .models import Category, Book, Rating, SlideBar, Comment, Favorite, BookViews
 
 class CategorySerializer(serializers.ModelSerializer):

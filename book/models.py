@@ -1,10 +1,5 @@
 from django.db import models
-
-# Create your models here.
-from django.db import models
 from  account.models import User
-# Create your models here.
-
 
 class Category(models.Model):
 	name = models.CharField(max_length = 100)
@@ -27,11 +22,13 @@ class Book(models.Model):
 	bookfile = models.FileField(upload_to = "media/books/",null=True)
 	created = models.DateTimeField(auto_now_add=True)
 	updated = models.DateTimeField(auto_now=True)
-	description = models.TextField(null=True)
+
 
 	def __str__(self):
 		return self.name
-
+ 
+class AudioBook():
+	pass
 
 class Participant(models.Model):
 	book = models.ForeignKey(Book, on_delete=models.CASCADE)
