@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from .serializers import CategorySerializer, BookSerializer, BookViewSerializer, FavoriteSerializer
+from .serializers import CategorySerializer, BookSerializer, BookViewSerializer, FavoriteSerializer,UploadBookSerializer
 from rest_framework.viewsets import ModelViewSet
 from . models import Category,Book,BookViews,Favorite,Participant,Rating,SlideBar,Comment
 from rest_framework.viewsets import mixins
@@ -159,11 +159,15 @@ class SearchView(generics.ListAPIView):
     search_fields = ['$name']
     
 class UploadBookView(APIView):
-    def post(self, request, *args, **kwargs):
-        book_serializer = BookSerializer(data=request.data)
-        if book_serializer.is_valid():
-            # Faylning manzili
-            book_path = book_serializer.validated_data['file'].path
+    @swagger_auto_schema(request_body=UploadBookSerializer)
+    def post(self, request):
+        data=request.data
+        book_id=data["book_id"]
+        try:
+
+            book=Book.objects.filter(id=book_id)
+
+            book_path = book['file'].path
             
             # Faylni o'qish va uni matnga aylantirish
             text_content = read_book(book_path)
@@ -171,5 +175,5 @@ class UploadBookView(APIView):
             # Boshqa logika (masalan, ma'lumotlarni saqlash, kitob obyektini yaratish)...
             
             return Response({'text_content': text_content}, status=status.HTTP_201_CREATED)
-        else:
-            return Response(book_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        except Book.DoesNotExist:
+            return Response({'error': 'Kitob topilmadi'}, status=status.HTTP_404_NOT_FOUND)

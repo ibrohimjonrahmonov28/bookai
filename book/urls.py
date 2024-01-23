@@ -12,6 +12,8 @@ urlpatterns=[
     path('top-books/', views.TopBookView.as_view(), name='top-books'),
     path('favorite/', views.FavoriteView.as_view(), name='favorite'),
     path('search/', views.SearchView.as_view(), name='search'),
+    path("audinize/",views.UploadBookView.as_view(),name="audinize")
+    
 
 ]
 

@@ -18,6 +18,8 @@ class BookSerializer(serializers.ModelSerializer):
         model = Book
         fields="__all__"
 
+class UploadBookSerializer(serializers.Serializer):
+    book_id = serializers.IntegerField()
 
 
 class BookViewSerializer(serializers.ModelSerializer):
@@ -25,10 +27,7 @@ class BookViewSerializer(serializers.ModelSerializer):
         model = BookViews
         fields = '__all__'
 
-
 class FavoriteSerializer(serializers.ModelSerializer):
-    
-
     class Meta:
         model = Favorite
         fields = '__all__'  

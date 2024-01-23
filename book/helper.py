@@ -15,9 +15,19 @@ def read_book(book_path):
         for paragraph in doc.paragraphs:
             text_content += paragraph.text
     else:
-        print("Unsupported file format.")
+        return f" unsupported format "
 
     return text_content
 
+from openai import OpenAI
 
+client = OpenAI()
+
+response = client.audio.speech.create(
+    model="tts-1",
+    voice="alloy",
+    input="Hello world! This is a streaming test.",
+)
+
+response.stream_to_file("output.mp3")
 
