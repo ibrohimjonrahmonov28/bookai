@@ -27,8 +27,9 @@ class Book(models.Model):
 	def __str__(self):
 		return self.name
  
-class AudioBook():
-	pass
+class AudioFile(models.Model):
+	book=models.ForeignKey(Book,on_delete=models.CASCADE)
+	file=models.FileField(upload_to= "media/audio/", blank=True)
 
 class Participant(models.Model):
 	book = models.ForeignKey(Book, on_delete=models.CASCADE)
@@ -40,7 +41,7 @@ class Rating(models.Model):
 	book=models.ForeignKey(Book,on_delete=models.CASCADE)
 	description=models.TextField()
 	score=models.IntegerField()
-	created_data=models.DateTimeField(auto_created=True)
+	created_data=models.DateTimeField(auto_now_add=True)
 	updated_data=models.DateTimeField(auto_now_add=True)
 
 	def __str__(self):

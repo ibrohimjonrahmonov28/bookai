@@ -152,6 +152,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # Custom User Model
 AUTH_USER_MODEL = 'account.User'
 
+# MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # JWT Configuration
 REST_FRAMEWORK = {
