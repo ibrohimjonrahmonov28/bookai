@@ -103,16 +103,65 @@ class TopBookView(APIView):
         return Response(serializer.data)
         #TODO top book larni chiqarish 
 
-class FavoriteView(APIView):   #DONE  
-    def get(self, request):
-        cache_key = f"favorite_book_{request.user.id}"
+# class FavoriteView(APIView):   #DONE  
+#     def get(self, request):
+#         cache_key = f"favorite_book_{request.user.id}"
+#         favorite_books = cache.get(cache_key)
+#         if favorite_books is None:
+#             favorite_books = Favorite.objects.filter(user=request.user)
+#             cache.set(cache_key, favorite_books)
+#         serializer = FavoriteSerializer(favorite_books, many=True)
+#         return Response(serializer.data) # done
+
+
+#     @swagger_auto_schema(request_body=FavoriteSerializer)
+#     def post(self, request):
+#         data = request.data 
+#         book_id = data["book"]
+#         book = get_object_or_404(Book, id=book_id)
+#         favorite = Favorite.objects.create(user=request.user, book=book)
+#         cache_key = f"favorite_book_{request.user.id}"
+#         favorite_books = cache.get(cache_key)
+#         if favorite_books is not None:
+
+#             favorite_books.append(favorite)
+#             cache.set(cache_key, favorite_books)
+#         else:
+#             cache.set(cache_key,[favorite])
+#         serializer = FavoriteSerializer(favorite)
+#         return Response(serializer.data)
+
+#     def delete(self, request, pk):
+#         favorite = get_object_or_404(Favorite, pk=pk)
+#         favorite.delete()
+#         cache_key = f"favorite_book_{request.user.id}"
+#         favorite_books = cache.get(cache_key)
+#         if favorite_books is not None:
+#             favorite_books = [favorite for favorite in favorite_books if favorite.id != pk]
+#             cache.set(cache_key, favorite_books)
+#         else:
+#             print("Cache is empty. No further actions taken.")
+#             cache.set(cache_key,[]
+#             )
+#         return Response(status=status.HTTP_204_NO_CONTENT)
+        # TODO cache ni qayta sozlash 
+from django.core.cache import cache
+
+class FavoriteView(APIView):
+    def _get_favorite_books(self, user):
+        cache_key = f"favorite_book_{user.id}"
         favorite_books = cache.get(cache_key)
+
         if favorite_books is None:
-            favorite_books = Favorite.objects.filter(user=request.user)
+            favorite_books = Favorite.objects.filter(user=user)
             cache.set(cache_key, favorite_books)
+
+        return favorite_books
+
+    def get(self, request):
+        favorite_books = self._get_favorite_books(request.user)
         serializer = FavoriteSerializer(favorite_books, many=True)
         return Response(serializer.data) # done
-
 
     @swagger_auto_schema(request_body=FavoriteSerializer)
     def post(self, request):
@@ -120,31 +169,37 @@ class FavoriteView(APIView):   #DONE
         book_id = data["book"]
         book = get_object_or_404(Book, id=book_id)
         favorite = Favorite.objects.create(user=request.user, book=book)
-        cache_key = f"favorite_book_{request.user.id}"
-        favorite_books = cache.get(cache_key)
-        if favorite_books is not None:
 
+        cache_key = f"favorite_book_{request.user.id}"
+        favorite_books = list(self._get_favorite_books(request.user))
+
+        if favorite_books is not None:
             favorite_books.append(favorite)
             cache.set(cache_key, favorite_books)
         else:
-            cache.set(cache_key,[favorite])
+            cache.set(cache_key, [favorite])
+
         serializer = FavoriteSerializer(favorite)
         return Response(serializer.data)
 
-    def delete(self, request, pk):
-        favorite = get_object_or_404(Favorite, pk=pk)
+    def delete(self, request):
+        data=request.data
+        book_id = data["book"]
+        favorite = get_object_or_404(Favorite, id=book_id)
         favorite.delete()
+
         cache_key = f"favorite_book_{request.user.id}"
-        favorite_books = cache.get(cache_key)
+        favorite_books = self._get_favorite_books(request.user)
+
         if favorite_books is not None:
-            favorite_books = [favorite for favorite in favorite_books if favorite.id != pk]
+            favorite_books = [fav for fav in favorite_books if fav.id != book_id]
             cache.set(cache_key, favorite_books)
         else:
-            print("Cache is empty. No further actions taken.")
-            cache.set(cache_key,[]
-            )
+            cache.set(cache_key, [])
+
         return Response(status=status.HTTP_204_NO_CONTENT)
-        # TODO cache ni qayta sozlash 
+        #TODO CACHE TEZLIGINI TEKSHIRISH 
+ 
 
 # class TopBookView(APIView):
 #     @swagger_auto_schema(request_body=DateRangeSerializer)
@@ -152,7 +207,8 @@ class FavoriteView(APIView):   #DONE
 #         data = request.data
 #         start_date = data["start_date"]  
 #         end_date = data["end_date"]  
-#         top_views = BookViews.objects.filter(created_at__gte=start_date, created_at__lte=end_date)
+#         top_views = BookViews.objects.filter(created_at__date__gte=start_date, created_at__date__lte=end_date)
+#         print(top_views)
 #         books = Book.objects.filter(id__in=top_views.values_list("book_id", flat=True)).order_by("-views_count")[::10]
 #         serializer = BookSerializer(books, many=True)
 #         return Response(serializer.data)
@@ -162,6 +218,7 @@ class TopBookView(APIView):
     def get(self, request):
         one_month_ago = timezone.now() - timedelta(days=30)
         top_books = BookViews.objects.filter(created_at__gte=one_month_ago).values('book').annotate(book_count=Count('book')).order_by('-book_count')[:10]
+        print(top_books)
         book_ids = [book['book'] for book in top_books]
         queryset = Book.objects.filter(id__in=book_ids)
         serializer = BookSerializer(queryset, many=True) 
@@ -178,43 +235,6 @@ class SearchView(generics.ListAPIView):  #DONE
 
 client = OpenAI(api_key="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")
 
-# class UploadBookView(APIView):
-#     @swagger_auto_schema(request_body=UploadBookSerializer)
-#     def post(self, request):
-#         data = request.data
-#         book_id = data.get("book_id")
-
-#         try:
-#             book = Book.objects.get(id=book_id)
-#             book_path = book.bookfile.path
-#             text_content = read_book(book_path)
-#             chunk_size = 1000 
-#             chunks = [text_content[i:i+chunk_size] for i in range(0, len(text_content), chunk_size)]
-#             with NamedTemporaryFile(suffix='.mp3', delete=False) as temp_file:
-#                 for chunk in chunks:
-#                     response = client.audio.speech.create(
-#                         model="tts-1",
-#                         voice="alloy",
-#                         input=text_content
-#                     )
-#                     temp_file.write(response.read())
-
-#                     # desired_filename = f"{book.name}.mp3"  # Customize filename as needed
-#                 # try:
-#                 #     os.rename(temp_file.name, os.path.join(settings.MEDIA_ROOT, 'audio', desired_filename))
-#                 # except OSError as e:
-#                 #     return Response({'error': 'Failed to rename audio file: ' + str(e)},
-#                 #                     status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-#                 audio_file = AudioFile.objects.create(
-#                     book=book,
-#                     file=temp_file.name  
-#                 )
-
-#             return Response({'audio_file_id': audio_file.id}, status=status.HTTP_201_CREATED)
-
-#         except Book.DoesNotExist:
-#             return Response({'error': 'Kitob topilmadi'}, status=status.HTTP_404_NOT_FOUND)
 class UploadBookView(APIView):
     @swagger_auto_schema(request_body=UploadBookSerializer)
     def post(self, request):
@@ -227,15 +247,15 @@ class UploadBookView(APIView):
             text_content = read_book(book_path)
 
             # Chunk the text content
-            chunk_size = 1000 
-            chunks = [text_content[i:i+chunk_size] for i in range(0, len(text_content), chunk_size)]
+            loops = 1000 
+            loops = [text_content[i:i+loop_size] for i in range(0, len(text_content), loop_size)]
 
             with NamedTemporaryFile(suffix='.mp3', delete=False) as temp_file:
-                for chunk in chunks:
+                for loop in loops:
                     response = client.audio.speech.create(
                         model="tts-1",
                         voice="alloy",
-                        input=chunk  # Use the current chunk, not the entire text_content
+                        input=loop  # Use the current chunk, not the entire text_content
                     )
                     temp_file.write(response.read())
 
@@ -357,5 +377,5 @@ class BookCommentsAPIView(APIView):
 class RecentBooksView(generics.ListAPIView): # done 
     serializer_class = BookViewSerializer
     def get_queryset(self):
-        return BookViews.objects.filter(user = self.request.user ).order_by("created_at")[:10] #
+        return BookViews.objects.filter(user = self.request.user ).order_by("-created_at")[:10] #
         # done 
