@@ -26,5 +26,6 @@ urlpatterns = [
     path('api/', include('account.urls')),
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
     path('book/',include("book.urls")),
+    path("__debug__/", include("debug_toolbar.urls"))
 
 ]

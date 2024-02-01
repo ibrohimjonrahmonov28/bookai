@@ -1,5 +1,5 @@
 from django.db import models
-from django.contrib.auth.models import BaseUserManager, AbstractBaseUser
+from django.contrib.auth.models import BaseUserManager, AbstractBaseUser, PermissionsMixin
 
 GENDER_CHOICES = (("male", "male"), ("female", "female"))
 
@@ -21,7 +21,7 @@ class UserManager(BaseUserManager):
         user.save(using=self._db)
         return user
 
-class User(AbstractBaseUser):
+class User(AbstractBaseUser,PermissionsMixin):
     name = models.CharField(max_length=60, null=True)
     email = models.EmailField(verbose_name='Email', max_length=255, unique=True,)
     nickname = models.CharField(max_length=60, unique=True, null=True)

@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from .serializers import CategorySerializer,RatingCustomSerializer,CommentPutSerializer, DateRangeSerializer,CommentSerializer,BookSerializer, SlideBarSerializer, BookViewSerializer, FavoriteSerializer,UploadBookSerializer,RatingSerializer,ParticipantSerializer
+from .serializers import CategorySerializer,FavoriteBodySerializer,RatingCustomSerializer,CommentPutSerializer, DateRangeSerializer,CommentSerializer,BookSerializer, SlideBarSerializer, BookViewSerializer, FavoriteSerializer,UploadBookSerializer,RatingSerializer,ParticipantSerializer
 from rest_framework.viewsets import ModelViewSet
 from . models import Category,Book,BookViews,Favorite,Participant,Rating,SlideBar,Comment,AudioFile
 from rest_framework.views import APIView
@@ -96,56 +96,14 @@ class OneBookView(APIView): #DONE
 class TopBookView(APIView):
     def get(self, request):
         one_month_ago = timezone.now() - timedelta(days=30)
-        top_books = BookViews.objects.filter(created_at__gte=one_month_ago).values('book').annotate(book_count=Count('book')).order_by('-book_count')[:10]
+        top_books = BookViews.objects.filter(created_at__gte=one_month_ago).values('book').annotate(views_count=Count('id')).order_by('-views_count')[:10]
+
+        # top_books = BookViews.objects.filter(created_at__gte=one_month_ago).values('book').annotate(book_count=Count('book')).order_by('-views_count')[:10]
         book_ids = [book['book'] for book in top_books]
-        queryset = Book.objects.filter(id__in=book_ids)
+        queryset = Book.objects.filter(id__in=book_ids).order_by("-views_count")
         serializer = BookSerializer(queryset, many=True) 
         return Response(serializer.data)
         #TODO top book larni chiqarish 
-
-# class FavoriteView(APIView):   #DONE  
-#     def get(self, request):
-#         cache_key = f"favorite_book_{request.user.id}"
-#         favorite_books = cache.get(cache_key)
-#         if favorite_books is None:
-#             favorite_books = Favorite.objects.filter(user=request.user)
-#             cache.set(cache_key, favorite_books)
-#         serializer = FavoriteSerializer(favorite_books, many=True)
-#         return Response(serializer.data) # done
-
-
-#     @swagger_auto_schema(request_body=FavoriteSerializer)
-#     def post(self, request):
-#         data = request.data 
-#         book_id = data["book"]
-#         book = get_object_or_404(Book, id=book_id)
-#         favorite = Favorite.objects.create(user=request.user, book=book)
-#         cache_key = f"favorite_book_{request.user.id}"
-#         favorite_books = cache.get(cache_key)
-#         if favorite_books is not None:
-
-#             favorite_books.append(favorite)
-#             cache.set(cache_key, favorite_books)
-#         else:
-#             cache.set(cache_key,[favorite])
-#         serializer = FavoriteSerializer(favorite)
-#         return Response(serializer.data)
-
-#     def delete(self, request, pk):
-#         favorite = get_object_or_404(Favorite, pk=pk)
-#         favorite.delete()
-#         cache_key = f"favorite_book_{request.user.id}"
-#         favorite_books = cache.get(cache_key)
-#         if favorite_books is not None:
-#             favorite_books = [favorite for favorite in favorite_books if favorite.id != pk]
-#             cache.set(cache_key, favorite_books)
-#         else:
-#             print("Cache is empty. No further actions taken.")
-#             cache.set(cache_key,[]
-#             )
-#         return Response(status=status.HTTP_204_NO_CONTENT)
-        # TODO cache ni qayta sozlash 
-from django.core.cache import cache
 
 class FavoriteView(APIView):
     def _get_favorite_books(self, user):
@@ -162,11 +120,10 @@ class FavoriteView(APIView):
         favorite_books = self._get_favorite_books(request.user)
         serializer = FavoriteSerializer(favorite_books, many=True)
         return Response(serializer.data) # done
-
-    @swagger_auto_schema(request_body=FavoriteSerializer)
+    @swagger_auto_schema(request_body=FavoriteBodySerializer)
     def post(self, request):
         data = request.data 
-        book_id = data["book"]
+        book_id = data["book_id"]
         book = get_object_or_404(Book, id=book_id)
         favorite = Favorite.objects.create(user=request.user, book=book)
 
@@ -181,10 +138,10 @@ class FavoriteView(APIView):
 
         serializer = FavoriteSerializer(favorite)
         return Response(serializer.data)
-
+    @swagger_auto_schema(request_body=FavoriteBodySerializer)
     def delete(self, request):
         data=request.data
-        book_id = data["book"]
+        book_id = data["book_id"]
         favorite = get_object_or_404(Favorite, id=book_id)
         favorite.delete()
 

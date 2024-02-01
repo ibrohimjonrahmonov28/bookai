@@ -1,5 +1,6 @@
 from django.db import models
 from  account.models import User
+from django.core.validators import MinValueValidator, MaxValueValidator
 
 class Category(models.Model):
 	name = models.CharField(max_length = 100)
@@ -12,7 +13,7 @@ class Category(models.Model):
 		return self.name
 
 class Book(models.Model):
-	category = models.ForeignKey(Category, on_delete = models.CASCADE)
+	category = models.ForeignKey(Category,  help_text = "select book category ",on_delete = models.CASCADE)
 	name = models.CharField(max_length = 100)
 	slug = models.SlugField(max_length=100, db_index=True,null=True)
 	price = models.IntegerField()
@@ -40,7 +41,7 @@ class Rating(models.Model):
 	user=models.ForeignKey(User,on_delete=models.CASCADE)
 	book=models.ForeignKey(Book,on_delete=models.CASCADE)
 	description=models.TextField()
-	score=models.IntegerField()
+	score=models.IntegerField(validators= [ MinValueValidator(1),MaxValueValidator(5)],help_text="score 1dan katta 5 dan kichik bolishi kerak")
 	created_data=models.DateTimeField(auto_now_add=True)
 	updated_data=models.DateTimeField(auto_now_add=True)
 
@@ -56,7 +57,6 @@ class SlideBar(models.Model):
 	def __str__(self):
 		return self.title
 
-
 class Comment(models.Model):
 	book=models.ForeignKey(Book, on_delete=models.CASCADE)
 	user=models.ForeignKey(User, on_delete= models.CASCADE)
@@ -64,18 +64,14 @@ class Comment(models.Model):
 	created = models.DateTimeField(auto_now_add=True)
 	updated = models.DateTimeField(auto_now=True)
 
-
-
 class Favorite(models.Model):
 	user=models.ForeignKey(User,on_delete= models.CASCADE)
 	book=models.ForeignKey(Book,on_delete=models.CASCADE)
 	
-
 class BookViews(models.Model):
 	book=models.ForeignKey(Book,on_delete=models.CASCADE)
 	user=models.ForeignKey(User,on_delete=models.CASCADE)
 	created_at=models.DateTimeField(auto_now_add=True)
-
 
 # top_views = BookViews.objects.filter(created_at__gte="xxx-xx-xx", ceated_at__lte="xxx-xx-xx")
 # books = Book.objects.filder(id__in=top_views.values_list("book_id", flat=True)).order_by("-views_count")[::10]

@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from account.models import User
 from .models import Category, Book, Rating, SlideBar, Comment, Favorite, BookViews, Participant
-
+from django.db.models import Avg
 class CategorySerializer(serializers.ModelSerializer):
     
     class Meta:
@@ -12,7 +12,15 @@ class CategorySerializer(serializers.ModelSerializer):
 class BookSerializer(serializers.ModelSerializer):
     # category = CategorySerializer()
     category_info = serializers.SerializerMethodField()
+    average_rating = serializers.SerializerMethodField()
 
+    def get_average_rating(self, obj):
+        average_rating = Rating.objects.filter(book=obj).aggregate(Avg('score'))['score__avg']
+        if average_rating is not None:
+            rounded_average_rating = round(average_rating, 1)
+            return rounded_average_rating
+        else:
+            return 0.0  
     class Meta:
         model = Book
         fields = "__all__"
@@ -75,3 +83,6 @@ class RatingCustomSerializer(serializers.Serializer):
     book_id = serializers.IntegerField()
     description =serializers.CharField()
     score =serializers.IntegerField()
+
+class FavoriteBodySerializer(serializers.Serializer):
+    book_id = serializers.IntegerField()
